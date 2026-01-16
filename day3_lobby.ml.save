@@ -1,0 +1,89 @@
+open! Core
+open! Hardcaml
+open! Signal
+
+(* One digit: values 0–9 *)
+let digit_bits = 4
+
+module I = struct
+  type 'a t =
+    { clock : 'a
+    ; clear : 'a
+    ; start : 'a
+    ; digit : 'a [@bits digit_bits]
+    ; digit_valid : 'a
+    ; finish : 'a
+    }
+  [@@deriving hardcaml]
+end
+
+module O = struct
+  type 'a t =
+    { result : 'a [@bits 8]
+    ; result_valid : 'a
+    }
+  [@@deriving hardcaml]
+end
+
+module State = struct
+  type t =
+    | Idle
+    | Scan
+    | Done
+  [@@deriving sexp_of, compare, enumerate]
+end
+
+let create scope (i : _ I.t) : _ O.t =
+  let spec = Reg_spec.create ~clock:i.clock ~clear:i.clear () in
+  let open Always in
+
+  let sm = State_machine.create (module State) spec in
+
+  let%hw_var max1 = Variable.reg spec ~width:digit_bits in
+  let%hw_var max2 = Variable.reg spec ~width:digit_bits in
+  let%hw_var seen_max1 = Variable.reg spec ~width:1 in
+
+  let result = Variable.wire ~default:(zero 8) in
+  let result_valid = Variable.wire ~default:gnd in
+
+  compile
+    [ sm.switch
+        [ ( Idle
+          , [ when_
+                i.start
+                [ max1 <-- zero digit_bits
+                ; max2 <-- zero digit_bits
+                ; seen_max1 <-- gnd
+                ; sm.set_next Scan
+                ]
+            ] )
+        ; ( Scan
+          , [ when_
+                i.digit_valid
+                [ if_
+                    (i.digit >: max1.value)
+                    [ max2 <-- max1.value
+                    ; max1 <-- i.digit
+                    ; seen_max1 <-- vdd
+                    ]
+                    [ when_
+                        seen_max1.value
+                        [ when_ (i.digit >: max2.value) [ max2 <-- i.digit ] ]
+                    ]
+                ]
+            ; when_ i.finish [ sm.set_next Done ]
+            ] )
+        ; ( Done
+          , [ result <-- uresize (max1.value *: 10 +: max2.value)      ; result_valid <-- vdd
+            ; sm.set_next Idle
+            ] )
+        ]
+    ];
+
+  { result = result.value; result_valid = result_valid.value }
+;;
+
+let hierarchical scope =
+  let module H = Hierarchy.In_scope (I) (O) in
+  H.hierarchical ~scope ~name:"day3_lobby" create
+;;
