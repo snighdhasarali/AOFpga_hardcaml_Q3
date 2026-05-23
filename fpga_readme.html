@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPGA Numerical Processing Accelerator - Project README</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --matrix-green: #00ff41;
+            --dark-green: #003b00;
+            --glow-green: #00ff41;
+            --terminal-bg: #0d0208;
+            --text-green: #00ff41;
+            --dim-green: #008f11;
+            --accent-cyan: #00ffff;
+        }
+
+        body {
+            background: var(--terminal-bg);
+            color: var(--text-green);
+            font-family: 'Share Tech Mono', monospace;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 65, 0.03),
+                rgba(0, 255, 65, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100px); }
+        }
+
+        /* Matrix rain background */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.05;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .matrix-char {
+            position: absolute;
+            color: var(--matrix-green);
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding: 40px 20px;
+            border: 2px solid var(--matrix-green);
+            background: rgba(0, 255, 65, 0.05);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3), inset 0 0 30px rgba(0, 255, 65, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--matrix-green), var(--accent-cyan), var(--matrix-green));
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(10px);
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 
+                0 0 10px var(--glow-green),
+                0 0 20px var(--glow-green),
+                0 0 30px var(--glow-green),
+                0 0 40px var(--dark-green);
+            animation: title-glitch 3s infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes title-glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 2px); }
+            94% { transform: translate(2px, -2px); }
+            96% { transform: translate(-2px, -2px); }
+            98% { transform: translate(2px, 2px); }
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--accent-cyan);
+            font-family: 'VT323', monospace;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        /* Stats Dashboard */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .stat-card {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid var(--matrix-green);
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card:hover::before {
+            left: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.4);
+            border-color: var(--accent-cyan);
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            color: var(--matrix-green);
+            text-shadow: 0 0 20px var(--glow-green);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--dim-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Achievement Badges */
+        .achievements {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 40px 0;
+            justify-content: center;
+        }
+
+        .badge {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--matrix-green);
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            animation: badge-glow 2s ease-in-out infinite;
+            animation-delay: calc(var(--delay) * 0.3s);
+        }
+
+        @keyframes badge-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6); }
+        }
+
+        .badge::before {
+            content: '▶';
+            margin-right: 8px;
+            color: var(--accent-cyan);
+        }
+
+        /* Section Styling */
+        section {
+            margin: 50px 0;
+            padding: 30px;
+            border-left: 3px solid var(--matrix-green);
+            background: linear-gradient(90deg, rgba(0, 255, 65, 0.05), transparent);
+            position: relative;
+        }
+
+        section::before {
+            content: '';
+            position: absolute;
+            left: -3px;
+            top: 0;
+            width: 3px;
+            height: 0;
+            background: var(--accent-cyan);
+            animation: section-load 1s ease-out forwards;
+            animation-delay: calc(var(--section-index) * 0.2s);
+        }
+
+        @keyframes section-load {
+            to { height: 100%; }
+        }
+
+        h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--matrix-green);
+            text-shadow: 0 0 15px var(--glow-green);
+            position: relative;
+            display: inline-block;
+        }
+
+        h2::after {
+            content: '_';
+            animation: cursor-blink 1s infinite;
+        }
+
+        @keyframes cursor-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            margin: 25px 0 15px 0;
+            text-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        p, li {
+            margin: 15px 0;
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin: 30px 0;
+        }
+
+        .progress-item {
+            margin: 20px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 59, 0, 0.5);
+            border: 1px solid var(--matrix-green);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--dark-green), var(--matrix-green));
+            box-shadow: 0 0 20px var(--glow-green);
+            position: relative;
+            animation: progress-load 2s ease-out forwards;
+            animation-delay: calc(var(--progress-delay) * 0.3s);
+            width: 0;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes progress-load {
+            to { width: var(--progress-value); }
+        }
+
+        @keyframes shine {
+            to { transform: translateX(200%); }
+        }
+
+        /* FSM State Machine */
+        .state-machine {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .state {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--matrix-green);
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            position: relative;
+            animation: state-pulse 2s ease-in-out infinite;
+            animation-delay: calc(var(--state-index) * 0.5s);
+        }
+
+        @keyframes state-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(0, 255, 65, 0.7);
+                transform: scale(1.05);
+            }
+        }
+
+        .state-arrow {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            text-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid var(--matrix-green);
+        }
+
+        th {
+            background: rgba(0, 255, 65, 0.2);
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--matrix-green);
+            text-shadow: 0 0 10px var(--glow-green);
+        }
+
+        tr:hover {
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        /* Code/Formula Display */
+        .formula {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px dashed var(--matrix-green);
+            padding: 20px;
+            margin: 25px 0;
+            font-family: 'VT323', monospace;
+            font-size: 1.8rem;
+            text-align: center;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--accent-cyan);
+            letter-spacing: 2px;
+        }
+
+        /* List Styling */
+        ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+
+        li {
+            position: relative;
+            padding-left: 25px;
+        }
+
+        li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-size: 1.2rem;
+        }
+
+        /* Pipeline Visualization */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pipeline-stage {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--matrix-green);
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 700;
+            position: relative;
+            animation: pipeline-flow 3s ease-in-out infinite;
+            animation-delay: calc(var(--stage-index) * 0.5s);
+        }
+
+        @keyframes pipeline-flow {
+            0%, 100% { 
+                background: rgba(0, 255, 65, 0.1);
+                border-color: var(--matrix-green);
+            }
+            50% { 
+                background: rgba(0, 255, 65, 0.3);
+                border-color: var(--accent-cyan);
+                box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            }
+        }
+
+        .pipeline-arrow {
+            color: var(--matrix-green);
+            font-size: 1.5rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: 60px;
+            border-top: 2px solid var(--matrix-green);
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+        }
+
+        .glitch-text {
+            animation: glitch 5s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 98%, 100% { 
+                text-shadow: 0 0 10px var(--glow-green);
+            }
+            99% { 
+                text-shadow: 
+                    -2px 0 var(--accent-cyan),
+                    2px 0 #ff00ff;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.6rem; }
+            .subtitle { font-size: 1rem; }
+            .stat-value { font-size: 2rem; }
+            .state-machine { flex-direction: column; }
+        }
+
+        /* Interactive Demo Styles */
+        .demo-container {
+            background: rgba(0, 255, 65, 0.03);
+            border: 2px solid var(--matrix-green);
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .digit-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .digit-btn {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--matrix-green);
+            color: var(--matrix-green);
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px var(--glow-green);
+        }
+
+        .digit-btn:hover {
+            background: rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            transform: scale(1.05);
+        }
+
+        .digit-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 50px rgba(0, 255, 65, 0.8);
+        }
+
+        .reset-btn {
+            width: 100%;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px var(--accent-cyan);
+            margin-top: 10px;
+        }
+
+        .reset-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .visualization-section {
+            margin: 30px 0;
+        }
+
+        .register-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .register {
+            background: rgba(0, 255, 65, 0.05);
+            border: 2px solid var(--matrix-green);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-label {
+            font-size: 0.9rem;
+            color: var(--dim-green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .register-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--matrix-green);
+            text-shadow: 0 0 20px var(--glow-green);
+            transition: all 0.3s ease;
+        }
+
+        .register-value.flash {
+            animation: value-flash 0.5s ease;
+        }
+
+        @keyframes value-flash {
+            0%, 100% { 
+                text-shadow: 0 0 20px var(--glow-green);
+                transform: scale(1);
+            }
+            50% { 
+                text-shadow: 0 0 50px var(--glow-green), 0 0 80px var(--glow-green);
+                transform: scale(1.2);
+            }
+        }
+
+        .computation-display {
+            background: rgba(0, 255, 65, 0.05);
+            border: 2px dashed var(--matrix-green);
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .comp-label {
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .formula-live {
+            font-family: 'VT323', monospace;
+            font-size: 2rem;
+            color: var(--matrix-green);
+            text-shadow: 0 0 15px var(--glow-green);
+            letter-spacing: 2px;
+        }
+
+        .output-display {
+            background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 255, 0.1));
+            border: 3px solid var(--accent-cyan);
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .output-label {
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .output-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 30px var(--accent-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .output-value.update {
+            animation: output-pulse 0.6s ease;
+        }
+
+        @keyframes output-pulse {
+            0%, 100% { 
+                transform: scale(1);
+                text-shadow: 0 0 30px var(--accent-cyan);
+            }
+            50% { 
+                transform: scale(1.15);
+                text-shadow: 0 0 60px var(--accent-cyan), 0 0 90px var(--accent-cyan);
+            }
+        }
+
+        .state-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .fsm-state {
+            display: inline-block;
+            background: rgba(0, 255, 65, 0.2);
+            border: 3px solid var(--matrix-green);
+            padding: 15px 40px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--matrix-green);
+            text-shadow: 0 0 20px var(--glow-green);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .fsm-state.active {
+            animation: state-active 0.4s ease;
+        }
+
+        @keyframes state-active {
+            0%, 100% { 
+                background: rgba(0, 255, 65, 0.2);
+                box-shadow: 0 0 30px rgba(0, 255, 65, 0.4);
+            }
+            50% { 
+                background: rgba(0, 255, 65, 0.5);
+                box-shadow: 0 0 60px rgba(0, 255, 65, 0.8);
+            }
+        }
+
+        .log-section {
+            margin-top: 30px;
+        }
+
+        .log-display {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--matrix-green);
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.95rem;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+            animation: log-appear 0.3s ease;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        @keyframes log-appear {
+            from { 
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-entry.input {
+            color: var(--accent-cyan);
+        }
+
+        .log-entry.compute {
+            color: var(--matrix-green);
+        }
+
+        .log-entry.output {
+            color: var(--matrix-green);
+            font-weight: 700;
+        }
+
+        /* Custom scrollbar for log */
+        .log-display::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-display::-webkit-scrollbar-track {
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .log-display::-webkit-scrollbar-thumb {
+            background: var(--matrix-green);
+            border-radius: 4px;
+        }
+
+        .log-display::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+
+        @media (max-width: 768px) {
+            .digit-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .register-value {
+                font-size: 2rem;
+            }
+            .output-value {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg" id="matrixBg"></div>
+
+    <div class="container">
+        <header>
+            <h1>FPGA-BASED NUMERICAL<br>PROCESSING ACCELERATOR</h1>
+            <p class="subtitle">[ HIGH-SPEED HARDWARE COMPUTATION SYSTEM ]</p>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-value">4-BIT</span>
+                <span class="stat-label">Input Digit Processing</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">FSM</span>
+                <span class="stat-label">State Machine Control</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">RTL</span>
+                <span class="stat-label">Hardware Description</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">FPGA</span>
+                <span class="stat-label">Target Platform</span>
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="achievements">
+            <div class="badge" style="--delay: 0">Low Latency Processing</div>
+            <div class="badge" style="--delay: 1">Deterministic Timing</div>
+            <div class="badge" style="--delay: 2">Parallel Execution</div>
+            <div class="badge" style="--delay: 3">Pipelined Architecture</div>
+            <div class="badge" style="--delay: 4">Vivado Compatible</div>
+            <div class="badge" style="--delay: 5">Synthesizable Design</div>
+        </div>
+
+        <!-- Project Overview -->
+        <section style="--section-index: 0">
+            <h2>PROJECT OVERVIEW</h2>
+            <p>This project is a small FPGA-based hardware accelerator designed using <strong>Verilog HDL</strong>. The goal of the design is to process incoming numerical data with low latency and deterministic timing using hardware logic instead of software execution.</p>
+            
+            <p>The module receives a <strong>4-bit input digit</strong> and performs real-time processing to:</p>
+            <ul>
+                <li>Track the maximum digit received</li>
+                <li>Store previous input values</li>
+                <li>Perform arithmetic operations</li>
+                <li>Generate an output result</li>
+                <li>Signal when computation is complete</li>
+            </ul>
+
+            <p>The project was developed as part of an <strong>FPGA-focused hackathon</strong> to explore high-speed hardware computation and digital system design.</p>
+        </section>
+
+        <!-- Motivation -->
+        <section style="--section-index: 1">
+            <h2>MOTIVATION</h2>
+            <p>Traditional processors execute instructions sequentially, which can introduce delays in time-sensitive systems. FPGA-based systems allow computations to be performed directly in hardware, enabling:</p>
+
+            <div class="progress-container">
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>Faster Execution</span>
+                        <span>100%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="--progress-value: 100%; --progress-delay: 0"></div>
+                    </div>
+                </div>
+
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>Parallel Processing</span>
+                        <span>95%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="--progress-value: 95%; --progress-delay: 1"></div>
+                    </div>
+                </div>
+
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>Predictable Latency</span>
+                        <span>98%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="--progress-value: 98%; --progress-delay: 2"></div>
+                    </div>
+                </div>
+
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>Real-Time Performance</span>
+                        <span>100%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="--progress-value: 100%; --progress-delay: 3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <p>These characteristics are especially useful in areas such as:</p>
+            <ul>
+                <li>High-frequency trading</li>
+                <li>Robotics</li>
+                <li>Signal processing</li>
+                <li>Embedded systems</li>
+                <li>Hardware acceleration</li>
+            </ul>
+        </section>
+
+        <!-- Design Architecture -->
+        <section style="--section-index: 2">
+            <h2>DESIGN ARCHITECTURE</h2>
+            <p>The design uses a modular RTL-based architecture with:</p>
+
+            <h3>1. Finite State Machine (FSM)</h3>
+            <p>The FSM controls the flow of computation through different stages:</p>
+
+            <div class="state-machine">
+                <div class="state" style="--state-index: 0">IDLE</div>
+                <span class="state-arrow">→</span>
+                <div class="state" style="--state-index: 1">LOAD</div>
+                <span class="state-arrow">→</span>
+                <div class="state" style="--state-index: 2">COMPUTE</div>
+                <span class="state-arrow">→</span>
+                <div class="state" style="--state-index: 3">DONE</div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Function</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>IDLE</td>
+                        <td>Waits for start signal</td>
+                    </tr>
+                    <tr>
+                        <td>LOAD</td>
+                        <td>Reads input digit</td>
+                    </tr>
+                    <tr>
+                        <td>COMPUTE</td>
+                        <td>Performs arithmetic operation</td>
+                    </tr>
+                    <tr>
+                        <td>DONE</td>
+                        <td>Signals computation completion</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>2. Datapath</h3>
+            <p>The datapath handles:</p>
+            <ul>
+                <li>Comparison logic</li>
+                <li>Arithmetic operations</li>
+                <li>Register storage</li>
+            </ul>
+            <p>The module continuously tracks the largest digit received and computes the result using hardware arithmetic.</p>
+
+            <h3>3. Pipelined Computation</h3>
+            <p>The computation is divided into stages to improve timing performance and hardware organization.</p>
+            
+            <p>Pipeline stages include:</p>
+            <div class="pipeline">
+                <div class="pipeline-stage" style="--stage-index: 0">Input Register</div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-stage" style="--stage-index: 1">Comparator</div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-stage" style="--stage-index: 2">Multiplier</div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-stage" style="--stage-index: 3">Adder</div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-stage" style="--stage-index: 4">Output Register</div>
+            </div>
+
+            <p>This structure improves scalability and makes the design easier to optimize for higher clock frequencies.</p>
+        </section>
+
+        <!-- Computation -->
+        <section style="--section-index: 3">
+            <h2>COMPUTATION</h2>
+            <p>The module computes:</p>
+            
+            <div class="formula">
+                result = (max_digit × 10) + previous_digit
+            </div>
+
+            <p>Where:</p>
+            <ul>
+                <li><strong>max_digit</strong> is the largest digit received so far</li>
+                <li><strong>previous_digit</strong> is the most recent stored input</li>
+            </ul>
+        </section>
+
+        <!-- Features -->
+        <section style="--section-index: 4">
+            <h2>FEATURES</h2>
+            
+            <h3>Current Features</h3>
+            <ul>
+                <li>Verilog RTL design</li>
+                <li>FSM-based control</li>
+                <li>Arithmetic datapath</li>
+                <li>Pipelined structure</li>
+                <li>Synthesizable on FPGA</li>
+                <li>Vivado compatible</li>
+                <li>Simple modular architecture</li>
+            </ul>
+        </section>
+
+        <!-- Vivado Integration -->
+        <section style="--section-index: 5">
+            <h2>VIVADO INTEGRATION</h2>
+            <p>The design can be synthesized and visualized using Vivado.</p>
+            
+            <p>Vivado tools were used to:</p>
+            <ul>
+                <li>Run synthesis</li>
+                <li>Generate RTL schematics</li>
+                <li>Visualize hardware blocks</li>
+                <li>Analyze logic structure</li>
+            </ul>
+
+            <p>The RTL schematic clearly shows:</p>
+            <ul>
+                <li>Registers</li>
+                <li>Comparators</li>
+                <li>Multipliers</li>
+                <li>Adders</li>
+                <li>FSM logic</li>
+            </ul>
+        </section>
+
+        <!-- Future Improvements -->
+        <section style="--section-index: 6">
+            <h2>FUTURE IMPROVEMENTS</h2>
+            <p>Possible future extensions include:</p>
+            <ul>
+                <li>AXI interface support</li>
+                <li>UART communication</li>
+                <li>Streaming input/output</li>
+                <li>Parallel datapaths</li>
+                <li>Performance counters</li>
+                <li>Hardware debugging support</li>
+                <li>Resource optimization</li>
+                <li>Timing optimization</li>
+            </ul>
+        </section>
+
+        <!-- Applications -->
+        <section style="--section-index: 7">
+            <h2>APPLICATIONS</h2>
+            <p>This architecture can be extended for:</p>
+            <ul>
+                <li>Low-latency FPGA systems</li>
+                <li>Financial computation engines</li>
+                <li>Embedded accelerators</li>
+                <li>Real-time data processing</li>
+                <li>Robotics hardware pipelines</li>
+                <li>Signal processing systems</li>
+            </ul>
+        </section>
+
+        <!-- Interactive Demo -->
+        <section style="--section-index: 8">
+            <h2>LIVE DEMONSTRATION</h2>
+            <p>Test the accelerator logic in real-time. Input digits (0-9) and watch the hardware computation unfold:</p>
+            
+            <div class="demo-container">
+                <div class="input-section">
+                    <h3 style="margin-bottom: 20px;">⚡ INPUT CONTROL PANEL</h3>
+                    <div class="digit-grid">
+                        <button class="digit-btn" onclick="processDigit(0)">0</button>
+                        <button class="digit-btn" onclick="processDigit(1)">1</button>
+                        <button class="digit-btn" onclick="processDigit(2)">2</button>
+                        <button class="digit-btn" onclick="processDigit(3)">3</button>
+                        <button class="digit-btn" onclick="processDigit(4)">4</button>
+                        <button class="digit-btn" onclick="processDigit(5)">5</button>
+                        <button class="digit-btn" onclick="processDigit(6)">6</button>
+                        <button class="digit-btn" onclick="processDigit(7)">7</button>
+                        <button class="digit-btn" onclick="processDigit(8)">8</button>
+                        <button class="digit-btn" onclick="processDigit(9)">9</button>
+                    </div>
+                    <button class="reset-btn" onclick="resetSystem()">🔄 RESET SYSTEM</button>
+                </div>
+
+                <div class="visualization-section">
+                    <div class="register-display">
+                        <div class="register">
+                            <div class="register-label">CURRENT INPUT</div>
+                            <div class="register-value" id="currentInput">-</div>
+                        </div>
+                        <div class="register">
+                            <div class="register-label">MAX DIGIT</div>
+                            <div class="register-value" id="maxDigit">0</div>
+                        </div>
+                        <div class="register">
+                            <div class="register-label">PREVIOUS DIGIT</div>
+                            <div class="register-value" id="prevDigit">0</div>
+                        </div>
+                    </div>
+
+                    <div class="computation-display">
+                        <div class="comp-label">🔧 HARDWARE COMPUTATION</div>
+                        <div class="formula-live" id="formulaDisplay">
+                            result = (0 × 10) + 0 = 0
+                        </div>
+                    </div>
+
+                    <div class="output-display">
+                        <div class="output-label">📤 OUTPUT RESULT</div>
+                        <div class="output-value" id="outputValue">0</div>
+                    </div>
+
+                    <div class="state-display">
+                        <div class="fsm-state" id="fsmState">IDLE</div>
+                    </div>
+                </div>
+
+                <div class="log-section">
+                    <h3 style="margin-bottom: 15px;">📊 PROCESSING LOG</h3>
+                    <div class="log-display" id="logDisplay">
+                        <div class="log-entry">[SYSTEM] Accelerator initialized and ready...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conclusion -->
+        <section style="--section-index: 9">
+            <h2>CONCLUSION</h2>
+            <p>This project demonstrates the fundamentals of <strong>FPGA-based hardware acceleration</strong> using <strong>Verilog HDL</strong>. By combining FSM control, pipelined datapaths, and modular RTL design, the system provides a clean and scalable foundation for building larger real-time hardware processing systems.</p>
+        </section>
+
+        <footer>
+            <p class="glitch-text">[ SYSTEM STATUS: OPERATIONAL ] [ READY FOR DEPLOYMENT ]</p>
+            <p style="margin-top: 20px; opacity: 0.7;">█▓▒░ FPGA ACCELERATOR v1.0 ░▒▓█</p>
+        </footer>
+    </div>
+
+    <script>
+        // Matrix rain effect
+        function createMatrixRain() {
+            const container = document.getElementById('matrixBg');
+            const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+            
+            for (let i = 0; i < 30; i++) {
+                const char = document.createElement('div');
+                char.className = 'matrix-char';
+                char.textContent = chars[Math.floor(Math.random() * chars.length)];
+                char.style.left = Math.random() * 100 + '%';
+                char.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                char.style.animationDelay = Math.random() * 5 + 's';
+                char.style.opacity = Math.random() * 0.5 + 0.1;
+                container.appendChild(char);
+            }
+        }
+
+        // Initialize matrix effect
+        createMatrixRain();
+
+        // Add typing effect to section headers
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateX(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            sections.forEach((section, index) => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateX(-20px)';
+                section.style.transition = `all 0.6s ease ${index * 0.1}s`;
+                observer.observe(section);
+            });
+        });
+
+        // Random glitch effect on title
+        setInterval(() => {
+            if (Math.random() > 0.95) {
+                const title = document.querySelector('h1');
+                title.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+                setTimeout(() => {
+                    title.style.transform = 'translate(0, 0)';
+                }, 50);
+            }
+        }, 100);
+
+        // Interactive Demo Logic
+        let maxDigit = 0;
+        let previousDigit = 0;
+        let currentInput = null;
+        let processingCount = 0;
+
+        function addLog(message, type = '') {
+            const logDisplay = document.getElementById('logDisplay');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDisplay.appendChild(entry);
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+
+            // Keep only last 20 entries
+            while (logDisplay.children.length > 20) {
+                logDisplay.removeChild(logDisplay.firstChild);
+            }
+        }
+
+        function flashElement(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.add('flash');
+            setTimeout(() => element.classList.remove('flash'), 500);
+        }
+
+        function updateState(state) {
+            const stateElement = document.getElementById('fsmState');
+            stateElement.textContent = state;
+            stateElement.classList.add('active');
+            setTimeout(() => stateElement.classList.remove('active'), 400);
+        }
+
+        async function processDigit(digit) {
+            processingCount++;
+            
+            // IDLE -> LOAD
+            updateState('IDLE');
+            await sleep(200);
+            
+            // Update current input
+            currentInput = digit;
+            document.getElementById('currentInput').textContent = digit;
+            flashElement('currentInput');
+            addLog(`Input received: ${digit}`, 'input');
+            
+            updateState('LOAD');
+            await sleep(300);
+            
+            // LOAD -> COMPUTE
+            updateState('COMPUTE');
+            
+            // Update max digit if current is larger
+            if (digit > maxDigit) {
+                maxDigit = digit;
+                document.getElementById('maxDigit').textContent = maxDigit;
+                flashElement('maxDigit');
+                addLog(`New maximum digit detected: ${maxDigit}`, 'compute');
+            }
+            
+            // Compute result
+            const result = (maxDigit * 10) + previousDigit;
+            
+            // Update formula display
+            document.getElementById('formulaDisplay').textContent = 
+                `result = (${maxDigit} × 10) + ${previousDigit} = ${result}`;
+            addLog(`Computing: (${maxDigit} × 10) + ${previousDigit} = ${result}`, 'compute');
+            
+            await sleep(400);
+            
+            // Update output
+            const outputElement = document.getElementById('outputValue');
+            outputElement.textContent = result;
+            outputElement.classList.add('update');
+            setTimeout(() => outputElement.classList.remove('update'), 600);
+            addLog(`Result output: ${result}`, 'output');
+            
+            // COMPUTE -> DONE
+            updateState('DONE');
+            await sleep(300);
+            
+            // Store current as previous for next iteration
+            previousDigit = digit;
+            document.getElementById('prevDigit').textContent = previousDigit;
+            flashElement('prevDigit');
+            
+            // Return to IDLE
+            updateState('IDLE');
+            addLog(`Cycle ${processingCount} complete. Ready for next input.`, '');
+        }
+
+        function resetSystem() {
+            maxDigit = 0;
+            previousDigit = 0;
+            currentInput = null;
+            processingCount = 0;
+            
+            document.getElementById('currentInput').textContent = '-';
+            document.getElementById('maxDigit').textContent = '0';
+            document.getElementById('prevDigit').textContent = '0';
+            document.getElementById('outputValue').textContent = '0';
+            document.getElementById('formulaDisplay').textContent = 'result = (0 × 10) + 0 = 0';
+            
+            updateState('IDLE');
+            
+            // Clear log
+            const logDisplay = document.getElementById('logDisplay');
+            logDisplay.innerHTML = '';
+            addLog('[SYSTEM] Accelerator reset complete. All registers cleared.', '');
+            addLog('[SYSTEM] Accelerator initialized and ready...', '');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
